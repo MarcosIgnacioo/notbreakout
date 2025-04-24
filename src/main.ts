@@ -19,11 +19,9 @@ const BB_HEIGHT = BB_WIDTH
 const BB_SPEED = 400
 const BAR_WIDTH = 100
 const BAR_HEIGHT = 20
-const BLOCK_WIDTH = SCREEN_WIDTH / 4
+const BLOCK_WIDTH = SCREEN_WIDTH / 2
 const BLOCK_HEIGHT = 24
 const INITIAL_ROWS = 4
-
-
 
 interface Entity {
   dir: Vector2
@@ -41,6 +39,7 @@ class Ball implements Entity {
   pos: Vector2
   color: number[]
   speed: number
+
   constructor(
     dir: Vector2,
     pos: Vector2,
@@ -77,7 +76,7 @@ class Ball implements Entity {
       && ny + this.radius >= bar.pos.y && ny - this.radius <= bar.pos.y + (bar as Bar).height
     ) {
       this.dir.x *= Math.max(1, nx / SCREEN_WIDTH)
-      this.dir.y *= Math.min(-1, nx / SCREEN_WIDTH)
+      this.dir.y *= Math.min(-1, ny / SCREEN_WIDTH)
       nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
       ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
     }
@@ -189,8 +188,8 @@ class Block implements Entity {
       bb.dir.y *= Math.min(-1, b_x / SCREEN_WIDTH)
       this.health--
       if (this.health == 0) {
-        let i = entities.indexOf(this)
-        entities.splice(i, 1)
+        let i = STATE.blocks.indexOf(this)
+        STATE.blocks.splice(i, 1)
       }
       STATE.points++
     }
@@ -205,18 +204,24 @@ class Block implements Entity {
   }
 }
 
+const bar_initial_pos = { x: SCREEN_WIDTH / 2 - BAR_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT * 5 }
+const bar_initial_dir = { x: 1, y: 0 }
+
 const bar: Entity = new Bar(
-  { x: 1, y: 0 },
-  { x: SCREEN_WIDTH / 2 - BAR_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT * 5 },
+  bar_initial_dir,
+  bar_initial_pos,
   [244, 171, 187],
   1000,
   BAR_WIDTH,
   BAR_HEIGHT,
 )
 
+const breaking_ball_initial_pos = { x: bar.pos.x + BAR_WIDTH / 2 + BB_HEIGHT / 2, y: bar.pos.y - BB_HEIGHT * 3 }
+const breaking_ball_initial_dir = { x: 1, y: -1 }
+
 const breaking_ball: Entity = new Ball(
-  { x: 1, y: 1 },
-  { x: bar.pos.x + BAR_WIDTH / 2 + BB_HEIGHT / 2, y: bar.pos.y - BB_HEIGHT * 30 },
+  breaking_ball_initial_dir,
+  breaking_ball_initial_pos,
   [255, 255, 255],
   BB_SPEED,
   BB_WIDTH,
@@ -226,6 +231,7 @@ const entities: Entity[] = [bar, breaking_ball]
 
 interface State {
   is_paused: boolean,
+  is_preparing_for_next_level: boolean,
   level: number,
   lives: number,
   points: number,
@@ -236,7 +242,8 @@ interface State {
 }
 
 const STATE: State = {
-  is_paused: false,
+  is_paused: true,
+  is_preparing_for_next_level: false,
   level: 1,
   lives: 3,
   points: 0,
@@ -248,23 +255,48 @@ const STATE: State = {
 
 const sketch = (p: p5): any => {
 
+
   p.setup = function() {
     p.createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
     for (let row = 0; row < STATE.block_rows; row++) {
       const row_color = get_random_rgb()
       for (let col = 0; col < STATE.block_cols; col++) {
-        //STATE.blocks.push(new Block(
+        //entities.push(new Block(
         //  { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
         //  1,
         //  row_color
         //))
-        entities.push(new Block(
+        STATE.blocks.push(new Block(
           { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
           1,
           row_color
         ))
       }
     }
+  }
+
+  function game_reset() {
+    STATE.block_rows++
+    STATE.level++
+    for (let row = 0; row < STATE.block_rows; row++) {
+      const row_color = get_random_rgb()
+      for (let col = 0; col < STATE.block_cols; col++) {
+        STATE.blocks.push(new Block(
+          { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
+          1,
+          row_color
+        ))
+      }
+    }
+    breaking_ball.dir = breaking_ball_initial_dir
+    breaking_ball.pos = breaking_ball_initial_pos
+    breaking_ball.speed += 25
+
+    bar.dir = bar_initial_dir
+    bar.color = get_random_rgb()
+    bar.pos.x = SCREEN_WIDTH / 2 - BAR_WIDTH / 2
+    STATE.is_preparing_for_next_level = true
+    STATE.is_paused = true
   }
 
   function update_entity(ent: Entity) {
@@ -309,8 +341,21 @@ const sketch = (p: p5): any => {
 
     p.background(0, 0, 0)
     handle_input()
+
+    if (STATE.blocks.length === 0) {
+      game_reset()
+    }
+
+    if (STATE.is_preparing_for_next_level) {
+      const text = "U PASSED THE " + STATE.level + " LEVEL, ENTER TO CONTINUE"
+      draw_text(text, SCREEN_WIDTH / 2 - 300, SCREEN_HEIGHT / 2, 24, "white")
+    }
+
     if (!STATE.is_paused) {
       entities.forEach(ent => {
+        update_entity(ent)
+      })
+      STATE.blocks.forEach(ent => {
         update_entity(ent)
       })
     }
@@ -319,14 +364,20 @@ const sketch = (p: p5): any => {
       ent.draw(p)
     })
 
+    STATE.blocks.forEach(ent => {
+      ent.draw(p)
+    })
+
     draw_text("Level " + STATE.level, 0, SCREEN_HEIGHT - FONT_SIZE * 3, FONT_SIZE, "pink")
     draw_text("Points " + STATE.points, 0, SCREEN_HEIGHT - FONT_SIZE * 2, FONT_SIZE, "white")
     draw_text("Lives " + STATE.lives, 0, SCREEN_HEIGHT - FONT_SIZE, FONT_SIZE, "cyan")
+
   }
 
   p.keyPressed = function() {
     if (p.keyCode === p.ENTER) {
       STATE.is_paused = !STATE.is_paused
+      STATE.is_preparing_for_next_level = false
     }
   }
 }
