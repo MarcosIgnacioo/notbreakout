@@ -19,7 +19,7 @@ const BB_HEIGHT = BB_WIDTH
 const BB_SPEED = 400
 const BAR_WIDTH = 100
 const BAR_HEIGHT = 20
-const BLOCK_WIDTH = SCREEN_WIDTH / 2
+const BLOCK_WIDTH = SCREEN_WIDTH / 4
 const BLOCK_HEIGHT = 24
 const INITIAL_ROWS = 4
 
@@ -67,7 +67,7 @@ class Ball implements Entity {
     }
 
     if (ny + this.radius > SCREEN_HEIGHT) {
-      if(STATE.lives===0){
+      if (STATE.lives === 0) {
         alert('perdisteS')
         location.reload()
       }
@@ -77,7 +77,7 @@ class Ball implements Entity {
       ny = breaking_ball_initial_pos.y
       bar.pos.x = SCREEN_WIDTH / 2 - BAR_WIDTH / 2
     }
-      
+
     if (ny - this.radius < 0) {
       this.dir.y *= -1
       ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
@@ -179,7 +179,7 @@ class Block implements Entity {
   height: number
   pos: Vector2
   color: number[]
-  is_unbreakeable : boolean
+  is_unbreakeable: boolean
   constructor(
     pos: Vector2,
     health: number,
@@ -192,7 +192,7 @@ class Block implements Entity {
     this.width = BLOCK_WIDTH
     this.height = BLOCK_HEIGHT
     this.health = health
-    this.is_unbreakeable= false
+    this.is_unbreakeable = false
   }
 
   // i dont like this!@ but idk what would be a better way to put this in an oop way
@@ -203,11 +203,14 @@ class Block implements Entity {
     let b_y = breaking_ball.pos.y
     const bb = breaking_ball as Ball
 
-    if (!this.is_unbreakeable && b_x >= this.pos.x && b_x - bb.radius <= this.pos.x + this.width
+    if (b_x >= this.pos.x && b_x - bb.radius <= this.pos.x + this.width
       && b_y + bb.radius >= this.pos.y && b_y - bb.radius <= this.pos.y + this.height
     ) {
       //bb.dir.x *= Math.max(1, b_x / SCREEN_WIDTH)
       bb.dir.y *= Math.min(-1, b_x / SCREEN_WIDTH)
+      if (this.is_unbreakeable) {
+        return
+      }
       this.health--
       if (this.health == 0) {
         let i = STATE.blocks.indexOf(this)
@@ -262,20 +265,20 @@ interface State {
   block_cols: number,
   total_blocks: number,
   blocks: Block[]
-  
+
 }
 
 const STATE: State = {
   is_paused: true,
   is_preparing_for_next_level: false,
-  level: 1,
-  lives: 3,
+  level: 2,
+  lives: 399999999999999999999999991341341349,
   points: 0,
   block_rows: INITIAL_ROWS,
   block_cols: SCREEN_WIDTH / BLOCK_WIDTH,
   total_blocks: SCREEN_WIDTH / BLOCK_WIDTH * INITIAL_ROWS,
   blocks: []
-  
+
 }
 
 const sketch = (p: p5): any => {
@@ -302,13 +305,13 @@ const sketch = (p: p5): any => {
 
   function game_reset() {
 
-    if(STATE.level===3){
-      
+    if (STATE.level === 3) {
+
       alert('GANASTE PA')
       location.reload()
-      
+
     }
-    
+
 
     STATE.level++
     STATE.block_rows++
@@ -322,15 +325,34 @@ const sketch = (p: p5): any => {
         ))
       }
     }
-    if(STATE.level===2){
+    if (STATE.level === 2) {
       const numeroAleatorio = STATE.blocks[Math.floor(Math.random() * STATE.blocks.length)];
-      numeroAleatorio.health=2
-      numeroAleatorio.color= [207,212,57]
+      numeroAleatorio.health = 3
+      numeroAleatorio.color = [207, 212, 57]
     }
-    if(STATE.level===3){
-      const numeroAleatorio = STATE.blocks[Math.floor(Math.random() * STATE.blocks.length)];
-      numeroAleatorio.color=[192, 192, 192]
-      numeroAleatorio.is_unbreakeable=true
+    if (STATE.level === 3) {
+      const indicesUsados = new Set();
+
+        function obtenerIndiceUnico() {
+          let indice;
+          do {
+            indice = Math.floor(Math.random() * STATE.blocks.length)
+          } while (indicesUsados.has(indice))
+          indicesUsados.add(indice)
+          return indice
+        }
+
+        for (let i = 0; i < 2; i++) {
+          const indice = obtenerIndiceUnico()
+          const bloque = STATE.blocks[indice]
+          bloque.health = 2
+          bloque.color = [207, 212, 57]
+        }
+
+        const indiceIrrompible = obtenerIndiceUnico()
+        const bloqueIrrompible = STATE.blocks[indiceIrrompible]
+        bloqueIrrompible.is_unbreakeable = true
+        bloqueIrrompible.color = [192, 192, 192]
     }
     breaking_ball.dir = breaking_ball_initial_dir
     breaking_ball.pos = breaking_ball_initial_pos
@@ -351,6 +373,18 @@ const sketch = (p: p5): any => {
     p.textSize(font_size);
     p.fill(color);
     p.text(text, x, y + font_size);
+  }
+  function skt_won() {
+    for (let i = 0; i < STATE.blocks.length; i++) {
+      const block = STATE.blocks[i]
+      if (block.is_unbreakeable) {
+        continue
+      }
+      if (block.health > 0) {
+        return false
+      }
+    }
+    return true
   }
 
   // ooga booga
@@ -386,14 +420,15 @@ const sketch = (p: p5): any => {
     p.background(0, 0, 0)
     handle_input()
 
-    if (STATE.blocks.length === 0) {
+    if (skt_won()) {
       game_reset()
+      
     }
-    
+
     if (STATE.is_preparing_for_next_level) {
       const text = "U PASSED THE " + STATE.level + " LEVEL, ENTER TO CONTINUE"
       draw_text(text, SCREEN_WIDTH / 2 - 300, SCREEN_HEIGHT / 2, 24, "white")
-      
+
     }
 
     if (!STATE.is_paused) {
@@ -412,7 +447,7 @@ const sketch = (p: p5): any => {
     STATE.blocks.forEach(ent => {
       ent.draw(p)
     })
-  
+
 
     draw_text("Level " + STATE.level, 0, SCREEN_HEIGHT - FONT_SIZE * 3, FONT_SIZE, "pink")
     draw_text("Points " + STATE.points, 0, SCREEN_HEIGHT - FONT_SIZE * 2, FONT_SIZE, "white")
