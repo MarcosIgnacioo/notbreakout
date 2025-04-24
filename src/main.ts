@@ -8,21 +8,20 @@ interface Vector2 {
 
 const SCREEN_WIDTH = 800
 const SCREEN_HEIGHT = 800
-let PAUSE = false
 const FPS = 60
 const DELTA_TIME_SEC = 1.0 / FPS
 //const total_tiles = 8
 //const tile_width = WIDTH / total_tiles
 //
-let x = 100
-let dx = 1
-let y = 50
-let dy = 1
 const BB_WIDTH = 10
 const BB_HEIGHT = BB_WIDTH
 const BB_SPEED = 400
 const BAR_WIDTH = 100
 const BAR_HEIGHT = 20
+const BLOCK_WIDTH = SCREEN_WIDTH / 12
+const BLOCK_HEIGHT = 24
+const INITIAL_ROWS = 4
+
 
 
 interface Entity {
@@ -81,7 +80,6 @@ class Ball implements Entity {
       nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
       ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
     }
-
 
     this.pos = { x: nx, y: ny }
   }
@@ -147,6 +145,64 @@ class Bar implements Entity {
 
 }
 
+
+function get_random_rgb(): number[] {
+  return [Math.random() * 255, Math.random() * 255, Math.random() * 255]
+}
+
+class Block implements Entity {
+  dir: Vector2
+  speed: number
+  health: number
+  width: number
+  height: number
+  pos: Vector2
+  color: number[]
+  constructor(
+    pos: Vector2,
+    health: number,
+    color: number[],
+  ) {
+    this.dir = { x: 0, y: 0 }
+    this.speed = 0
+    this.pos = pos
+    this.color = color
+    this.width = BLOCK_WIDTH
+    this.height = BLOCK_HEIGHT
+    this.health = health
+  }
+
+  // i dont like this!@ but idk what would be a better way to put this in an oop way
+  // the way my heart tells me is just to handle this collision in the ball collision but i guess
+  // this also has its advantages
+  handle_collisions() {
+    let b_x = breaking_ball.pos.x
+    let b_y = breaking_ball.pos.y
+    const bb = breaking_ball as Ball
+
+    if (
+      b_x >= this.pos.x && b_x - bb.radius <= this.pos.x + this.width
+      && b_y + bb.radius >= this.pos.y && b_y - bb.radius <= this.pos.y + this.height
+    ) {
+      //bb.dir.x *= Math.max(1, b_x / SCREEN_WIDTH)
+      bb.dir.y *= Math.min(-1, b_x / SCREEN_WIDTH)
+      this.health--
+    }
+    if (this.health == 0) {
+      let i = entities.indexOf(this)
+      entities.splice(i, 1)
+    }
+  }
+
+  draw(p: p5) {
+    p.fill(this.color)
+    p.rect(this.pos.x, this.pos.y, this.width, this.height)
+  }
+
+  update() {
+  }
+}
+
 const bar: Entity = new Bar(
   { x: 1, y: 0 },
   { x: SCREEN_WIDTH / 2 - BAR_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT * 5 },
@@ -166,10 +222,45 @@ const breaking_ball: Entity = new Ball(
 
 const entities: Entity[] = [bar, breaking_ball]
 
+interface State {
+  is_paused: boolean,
+  level: number,
+  points: number,
+  block_rows: number,
+  block_cols: number,
+  total_blocks: number,
+  blocks: Block[]
+}
+
+const STATE: State = {
+  is_paused: false,
+  level: 1,
+  points: 0,
+  block_rows: INITIAL_ROWS,
+  block_cols: SCREEN_WIDTH / BLOCK_WIDTH,
+  total_blocks: SCREEN_WIDTH / BLOCK_WIDTH * INITIAL_ROWS,
+  blocks: []
+}
+
 const sketch = (p: p5): any => {
 
   p.setup = function() {
     p.createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
+    for (let row = 0; row < STATE.block_rows; row++) {
+      const row_color = get_random_rgb()
+      for (let col = 0; col < STATE.block_cols; col++) {
+        STATE.blocks.push(new Block(
+          { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
+          1,
+          row_color
+        ))
+        entities.push(new Block(
+          { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
+          1,
+          row_color
+        ))
+      }
+    }
   }
 
   function update_entity(ent: Entity) {
@@ -209,7 +300,7 @@ const sketch = (p: p5): any => {
     p.background(0, 0, 0)
 
     handle_input()
-    if (!PAUSE) {
+    if (!STATE.is_paused) {
       entities.forEach(ent => {
         update_entity(ent)
       })
@@ -217,12 +308,14 @@ const sketch = (p: p5): any => {
     entities.forEach(ent => {
       ent.draw(p)
     })
-
+    //STATE.blocks.forEach((block: Block) => {
+    //  block.draw(p)
+    //})
   }
 
   p.keyPressed = function() {
     if (p.keyCode === p.ENTER) {
-      PAUSE = !PAUSE
+      STATE.is_paused = !STATE.is_paused
     }
   }
 }
