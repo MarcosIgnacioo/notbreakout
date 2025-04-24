@@ -271,8 +271,8 @@ interface State {
 const STATE: State = {
   is_paused: true,
   is_preparing_for_next_level: false,
-  level: 2,
-  lives: 399999999999999999999999991341341349,
+  level: 1,
+  lives: 3,
   points: 0,
   block_rows: INITIAL_ROWS,
   block_cols: SCREEN_WIDTH / BLOCK_WIDTH,
