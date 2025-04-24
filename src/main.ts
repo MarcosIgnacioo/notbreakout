@@ -56,7 +56,7 @@ class Ball implements Entity {
   }
 
   handle_collisions() {
-    //console.log('this is a ballsss collision', this);
+    //
     let nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
     let ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
 
@@ -84,11 +84,11 @@ class Ball implements Entity {
   draw(p: p5) {
     p.fill(this.color)
     p.circle(this.pos.x, this.pos.y, this.radius * 2)
-    //console.log('this is a ball entity draw', this);
+    //
   }
 
   update() {
-    //console.log('this is a ball update', this);
+    //
   }
 
 }
@@ -117,7 +117,18 @@ class Bar implements Entity {
   }
 
   handle_collisions() {
-    //console.log('this is a bar collision', this);
+    //
+    let nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
+
+    // why  i do not need to do nx - this.radius
+    if (nx < 0) {
+      nx = 0
+    }
+    if (nx + this.width > SCREEN_WIDTH) {
+      nx = SCREEN_WIDTH - this.width
+    }
+
+    this.pos.x = nx
   }
 
   draw(p: p5) {
@@ -126,7 +137,7 @@ class Bar implements Entity {
   }
 
   update() {
-    //console.log('this is a bar update', this);
+    //
   }
 
 }
@@ -143,13 +154,13 @@ const bar: Entity = new Bar(
 )
 
 const breaking_ball: Entity = new Ball(
-  { x: 1, y: -1 },
+  { x: 0, y: 0 },
   { x: SCREEN_WIDTH / 2 - BB_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT - BB_HEIGHT },
   [255, 255, 255],
   BB_SPEED,
   BB_WIDTH,
 )
-
+const entities: Entity[] = [bar, breaking_ball]
 
 const sketch = (p: p5): any => {
 
@@ -164,18 +175,22 @@ const sketch = (p: p5): any => {
   // ooga booga
   function handle_input() {
     // this could be easily remapble as global variables but ooga booga
+
+    bar.dir.x = 0
     if (p.keyIsDown(65)) {
-      alert("u pressed dright")
+      bar.dir.x = -1
     }
     if (p.keyIsDown(68)) {
-      alert("u pressed aleft")
+      bar.dir.x = 1
     }
-
 
     // space
     if (p.keyIsDown(32)) {
+      breaking_ball.dir = { x: 1, y: -1 }
     }
 
+    // nintnedo sue me 
+    // totk reversing time mechanic
     if (p.keyIsDown(38)) {
       breaking_ball.speed += 10
       breaking_ball.speed = Math.min(breaking_ball.speed, 300)
@@ -184,22 +199,23 @@ const sketch = (p: p5): any => {
       breaking_ball.speed -= 10
       breaking_ball.speed = Math.max(breaking_ball.speed, -300)
     }
-    console.log(breaking_ball);
   }
 
   p.draw = function() {
     p.background(0, 0, 0)
 
     handle_input()
-    //update_entity(bar)
     if (!PAUSE) {
-      update_entity(breaking_ball)
+      entities.forEach(ent => {
+        update_entity(ent)
+      })
     }
-    bar.draw(p)
-    breaking_ball.draw(p)
-    //p.fill(143, 234, 245, 255)
-    //p.rect(x, y, BB_WIDTH, BB_HEIGHT);
+    entities.forEach(ent => {
+      ent.draw(p)
+    })
+
   }
+
   p.keyPressed = function() {
     if (p.keyCode === p.ENTER) {
       PAUSE = !PAUSE
