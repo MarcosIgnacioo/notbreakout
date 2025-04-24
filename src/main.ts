@@ -230,7 +230,7 @@ class Block implements Entity {
 }
 
 const bar_initial_pos = { x: SCREEN_WIDTH / 2 - BAR_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT * 5 }
-const bar_initial_dir = { x: 1, y: 0 }
+const bar_initial_dir = { x: 1, y: 1 }
 
 const bar: Entity = new Bar(
   bar_initial_dir,
