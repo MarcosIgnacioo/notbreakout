@@ -71,6 +71,15 @@ class Ball implements Entity {
       ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
     }
 
+    // if some weid collision bug happens jus delete this thing
+    if (
+      nx + this.radius >= bar.pos.x && nx - this.radius <= bar.pos.x + (bar as Bar).width
+      && ny >= bar.pos.y && ny <= bar.pos.y + (bar as Bar).height
+    ) {
+      this.dir.x *= -1
+      nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
+    }
+
     if (
       nx >= bar.pos.x && nx - this.radius <= bar.pos.x + (bar as Bar).width
       && ny + this.radius >= bar.pos.y && ny - this.radius <= bar.pos.y + (bar as Bar).height
@@ -217,6 +226,7 @@ const bar: Entity = new Bar(
 )
 
 const breaking_ball_initial_pos = { x: bar.pos.x + BAR_WIDTH / 2 + BB_HEIGHT / 2, y: bar.pos.y - BB_HEIGHT * 3 }
+//const breaking_ball_initial_pos = { x: bar.pos.x - 200, y: bar.pos.y + BB_HEIGHT / 2 }
 const breaking_ball_initial_dir = { x: 1, y: -1 }
 
 const breaking_ball: Entity = new Ball(
@@ -381,4 +391,4 @@ const sketch = (p: p5): any => {
     }
   }
 }
-new p5(sketch);
+new p5(sketch)
