@@ -27,3 +27,8 @@ this ideas are probably not being implemented in this version cause is for a tes
       y = ny
     }
 ```
+the higher the level the higher you spawn
+trampile powe up where the bottom becomes bounceable for 3 times like mario yay
+
+like a roguelike XD breaklike
+

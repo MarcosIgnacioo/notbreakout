@@ -60,7 +60,8 @@ class Ball implements Entity {
     let nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
     let ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
 
-    // why  i do not need to do nx - this.radius
+    // why  i do not need to do nx - this.radius 
+    // theere is a bug where collision from the sides aint working but i have like not that much time for doing that
     if (nx - this.radius < 0 || nx + this.radius > SCREEN_WIDTH) {
       this.dir.x *= -1
       nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
@@ -71,14 +72,18 @@ class Ball implements Entity {
       ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
     }
 
-    this.pos = { x: nx, y: ny }
-    //let nx = ent.pos.x + ent.dir.x * ent.speed * DELTA_TIME_SEC
-    //let ny = ent.pos.y + ent.dir.y * ent.speed * DELTA_TIME_SEC
+    if (
+      nx >= bar.pos.x && nx - this.radius <= bar.pos.x + (bar as Bar).width
+      && ny + this.radius >= bar.pos.y && ny - this.radius <= bar.pos.y + (bar as Bar).height
+    ) {
+      this.dir.x *= Math.max(1, nx / SCREEN_WIDTH)
+      this.dir.y *= Math.min(-1, nx / SCREEN_WIDTH)
+      nx = this.pos.x + this.dir.x * this.speed * DELTA_TIME_SEC
+      ny = this.pos.y + this.dir.y * this.speed * DELTA_TIME_SEC
+    }
 
-    //if (ny < 0 || ny + BB_HEIGHT > SCREEN_HEIGHT) {
-    //  dy *= -1
-    //  ny = y + dy * BB_SPEED * DELTA_TIME_SEC
-    //}
+
+    this.pos = { x: nx, y: ny }
   }
 
   draw(p: p5) {
@@ -142,11 +147,9 @@ class Bar implements Entity {
 
 }
 
-
-
 const bar: Entity = new Bar(
   { x: 1, y: 0 },
-  { x: SCREEN_WIDTH / 2 - BAR_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT },
+  { x: SCREEN_WIDTH / 2 - BAR_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT * 5 },
   [244, 171, 187],
   1000,
   BAR_WIDTH,
@@ -154,12 +157,13 @@ const bar: Entity = new Bar(
 )
 
 const breaking_ball: Entity = new Ball(
-  { x: 0, y: 0 },
-  { x: SCREEN_WIDTH / 2 - BB_WIDTH / 2, y: SCREEN_HEIGHT - BAR_HEIGHT - BB_HEIGHT },
+  { x: 1, y: 1 },
+  { x: bar.pos.x + BAR_WIDTH / 2 + BB_HEIGHT / 2, y: bar.pos.y - BB_HEIGHT * 30 },
   [255, 255, 255],
   BB_SPEED,
   BB_WIDTH,
 )
+
 const entities: Entity[] = [bar, breaking_ball]
 
 const sketch = (p: p5): any => {
@@ -186,7 +190,7 @@ const sketch = (p: p5): any => {
 
     // space
     if (p.keyIsDown(32)) {
-      breaking_ball.dir = { x: 1, y: -1 }
+      breaking_ball.dir = { x: 1, y: 0 }
     }
 
     // nintnedo sue me 
