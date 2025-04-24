@@ -14,11 +14,12 @@ const DELTA_TIME_SEC = 1.0 / FPS
 //const tile_width = WIDTH / total_tiles
 //
 const BB_WIDTH = 10
+const FONT_SIZE = 24
 const BB_HEIGHT = BB_WIDTH
 const BB_SPEED = 400
 const BAR_WIDTH = 100
 const BAR_HEIGHT = 20
-const BLOCK_WIDTH = SCREEN_WIDTH / 12
+const BLOCK_WIDTH = SCREEN_WIDTH / 4
 const BLOCK_HEIGHT = 24
 const INITIAL_ROWS = 4
 
@@ -187,10 +188,11 @@ class Block implements Entity {
       //bb.dir.x *= Math.max(1, b_x / SCREEN_WIDTH)
       bb.dir.y *= Math.min(-1, b_x / SCREEN_WIDTH)
       this.health--
-    }
-    if (this.health == 0) {
-      let i = entities.indexOf(this)
-      entities.splice(i, 1)
+      if (this.health == 0) {
+        let i = entities.indexOf(this)
+        entities.splice(i, 1)
+      }
+      STATE.points++
     }
   }
 
@@ -225,6 +227,7 @@ const entities: Entity[] = [bar, breaking_ball]
 interface State {
   is_paused: boolean,
   level: number,
+  lives: number,
   points: number,
   block_rows: number,
   block_cols: number,
@@ -235,6 +238,7 @@ interface State {
 const STATE: State = {
   is_paused: false,
   level: 1,
+  lives: 3,
   points: 0,
   block_rows: INITIAL_ROWS,
   block_cols: SCREEN_WIDTH / BLOCK_WIDTH,
@@ -249,11 +253,11 @@ const sketch = (p: p5): any => {
     for (let row = 0; row < STATE.block_rows; row++) {
       const row_color = get_random_rgb()
       for (let col = 0; col < STATE.block_cols; col++) {
-        STATE.blocks.push(new Block(
-          { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
-          1,
-          row_color
-        ))
+        //STATE.blocks.push(new Block(
+        //  { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
+        //  1,
+        //  row_color
+        //))
         entities.push(new Block(
           { x: col * BLOCK_WIDTH, y: row * BLOCK_HEIGHT },
           1,
@@ -267,10 +271,15 @@ const sketch = (p: p5): any => {
     ent.handle_collisions()
   }
 
+  function draw_text(text: string, x: number, y: number, font_size: number, color: string) {
+    p.textSize(font_size);
+    p.fill(color);
+    p.text(text, x, y + font_size);
+  }
+
   // ooga booga
   function handle_input() {
     // this could be easily remapble as global variables but ooga booga
-
     bar.dir.x = 0
     if (p.keyIsDown(65)) {
       bar.dir.x = -1
@@ -297,20 +306,22 @@ const sketch = (p: p5): any => {
   }
 
   p.draw = function() {
-    p.background(0, 0, 0)
 
+    p.background(0, 0, 0)
     handle_input()
     if (!STATE.is_paused) {
       entities.forEach(ent => {
         update_entity(ent)
       })
     }
+
     entities.forEach(ent => {
       ent.draw(p)
     })
-    //STATE.blocks.forEach((block: Block) => {
-    //  block.draw(p)
-    //})
+
+    draw_text("Level " + STATE.level, 0, SCREEN_HEIGHT - FONT_SIZE * 3, FONT_SIZE, "pink")
+    draw_text("Points " + STATE.points, 0, SCREEN_HEIGHT - FONT_SIZE * 2, FONT_SIZE, "white")
+    draw_text("Lives " + STATE.lives, 0, SCREEN_HEIGHT - FONT_SIZE, FONT_SIZE, "cyan")
   }
 
   p.keyPressed = function() {
